@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>图片/PDF 转 PDF 工具</title>
+    <!-- 引入依赖库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js">
+    </script>
+    <style>
+        /* ===== 全局样式 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+        }
+        body {
+            background: #f0f2f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        }
+        h1 {
+            font-size: 24px;
+            color: #1a73e8;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        h2 {
+            font-size: 18px;
+            color: #333;
+            margin: 15px 0 10px;
+        }
+
+        /* ===== 选项卡 ===== */
+        .tabs {
+            display: flex;
+            gap: 6px;
+            border-bottom: 2px solid #e8e8e8;
+            padding-bottom: 2px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .tab {
+            padding: 10px 22px;
+            border: none;
+            background: #f5f5f5;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.2s;
+        }
+        .tab:hover {
+            background: #e8f0fe;
+            color: #1a73e8;
+        }
+        .tab.active {
+            background: #1a73e8;
+            color: #fff;
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== 表单元素 ===== */
+        .upload-area {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            margin: 10px 0;
+        }
+        .upload-area input[type="file"] {
+            padding: 8px 12px;
+            border: 1px dashed #aaa;
+            border-radius: 6px;
+            background: #fafafa;
+            cursor: pointer;
+            flex: 1;
+            min-width: 200px;
+        }
+        .upload-area input[type="file"]:hover {
+            border-color: #1a73e8;
+        }
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: #fff;
+            background: #1a73e8;
+        }
+        .btn:hover {
+            background: #1557b0;
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .btn-success {
+            background: #28a745;
+        }
+        .btn-success:hover {
+            background: #218838;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .btn-sm {
+            padding: 5px 14px;
+            font-size: 13px;
+        }
+
+        /* ===== 文件列表 ===== */
+        .file-list {
+            margin: 12px 0;
+            padding: 10px 14px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+        .file-list .file-item {
+            display: flex;
+            align-items: center;
+            padding: 4px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .file-list .file-item:last-child {
+            border-bottom: none;
+        }
+        .file-list .file-item .index {
+            width: 30px;
+            color: #999;
+            font-size: 13px;
+        }
+        .file-list .file-item .name {
+            flex: 1;
+            word-break: break-all;
+        }
+        .file-list .file-item .size {
+            color: #999;
+            font-size: 13px;
+            margin-left: 10px;
+        }
+
+        /* ===== 进度条 ===== */
+        .progress-area {
+            margin: 12px 0;
+            padding: 10px 14px;
+            background: #e8f0fe;
+            border-radius: 6px;
+            display: none;
+        }
+        .progress-area.show {
+            display: block;
+        }
+        .progress-text {
+            font-size: 14px;
+            color: #1a73e8;
+            margin-bottom: 6px;
+        }
+        .progress-bar-bg {
+            background: #ddd;
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            background: #1a73e8;
+            height: 100%;
+            width: 0%;
+            border-radius: 10px;
+            transition: width 0.3s;
+        }
+
+        /* ===== 拖拽排序容器 ===== */
+        .sort-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        .sort-list li {
+            padding: 8px 14px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+        .sort-list li:active {
+            cursor: grabbing;
+        }
+        .sort-list li .handle {
+            color: #999;
+            font-size: 18px;
+        }
+
+        /* ===== 提示信息 ===== */
+        .alert {
+            padding: 10px 16px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 14px;
+            display: none;
+        }
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 600px) {
+            .container {
+                padding: 16px;
+            }
+            .tab {
+                padding: 8px 14px;
+                font-size: 13px;
+            }
+            .upload-area {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>📄 图片 / PDF 转 PDF 工具</h1>
+
+        <!-- 选项卡 -->
+        <div class="tabs">
+            <button class="tab active" data-tab="tab1">⏱ 时间戳横版</button>
+            <button class="tab" data-tab="tab2">⏱ 时间戳竖版</button>
+            <button class="tab" data-tab="tab3">🔍 取证总结</button>
+            <button class="tab" data-tab="tab4">📎 PDF 合并</button>
+        </div>
+
+        <!-- ==================== Tab1: 时间戳横版 ==================== -->
+        <div id="tab1" class="tab-content active">
+            <h2>⏱ 时间戳横版</h2>
+            <p style="color:#666;font-size:14px;">上传图片文件夹，每张图片一页，PDF 横向，边距 2cm，页码居中。</p>
+            <div class="upload-area">
+                <input type="file" id="input1" webkitdirectory multiple accept="image/*" />
+                <button class="btn" id="generate1" disabled>生成 PDF 并下载</button>
+            </div>
+            <div class="file-list" id="fileList1"></div>
+            <div class="progress-area" id="progress1">
+                <div class="progress-text" id="progressText1">准备中...</div>
+                <div class="progress-bar-bg"><div class="progress-bar" id="progressBar1"></div></div>
+            </div>
+            <div class="alert" id="alert1"></div>
+        </div>
+
+        <!-- ==================== Tab2: 时间戳竖版 ==================== -->
+        <div id="tab2" class="tab-content">
+            <h2>⏱ 时间戳竖版</h2>
+            <p style="color:#666;font-size:14px;">上传图片文件夹，每张图片一页，PDF 竖向，边距 2cm，页码居中。</p>
+            <div class="upload-area">
+                <input type="file" id="input2" webkitdirectory multiple accept="image/*" />
+                <button class="btn" id="generate2" disabled>生成 PDF 并下载</button>
+            </div>
+            <div class="file-list" id="fileList2"></div>
+            <div class="progress-area" id="progress2">
+                <div class="progress-text" id="progressText2">准备中...</div>
+                <div class="progress-bar-bg"><div class="progress-bar" id="progressBar2"></div></div>
+            </div>
+            <div class="alert" id="alert2"></div>
+        </div>
+
+        <!-- ==================== Tab3: 取证总结 ==================== -->
+        <div id="tab3" class="tab-content">
+            <h2>🔍 取证总结</h2>
+            <p style="color:#666;font-size:14px;">上传图片文件夹，自动将竖图向左旋转为横版，每页 3 张图，PDF 竖向，边距 2cm，页码居中。</p>
+            <div class="upload-area">
+                <input type="file" id="input3" webkitdirectory multiple accept="image/*" />
+                <button class="btn" id="generate3" disabled>生成 PDF 并下载</button>
+            </div>
+            <div class="file-list" id="fileList3"></div>
+            <div class="progress-area" id="progress3">
+                <div class="progress-text" id="progressText3">准备中...</div>
+                <div class="progress-bar-bg"><div class="progress-bar" id="progressBar3"></div></div>
+            </div>
+            <div class="alert" id="alert3"></div>
+        </div>
+
+        <!-- ==================== Tab4: PDF 合并 ==================== -->
+        <div id="tab4" class="tab-content">
+            <h2>📎 PDF 合并</h2>
+            <p style="color:#666;font-size:14px;">上传多个 PDF 文件，拖拽调整顺序，合并为一个 PDF 下载。</p>
+            <div class="upload-area">
+                <input type="file" id="input4" multiple accept=".pdf" />
+                <button class="btn btn-success" id="mergeBtn" disabled>合并并下载</button>
+            </div>
+            <ul class="sort-list" id="sortList4"></ul>
+            <div class="progress-area" id="progress4">
+                <div class="progress-text" id="progressText4">准备中...</div>
+                <div class="progress-bar-bg"><div class="progress-bar" id="progressBar4"></div></div>
+            </div>
+            <div class="alert" id="alert4"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // ================================================================
+        //  全局工具函数
+        // ================================================================
+
+        /** 自然排序（支持数字） */
+        function naturalSort(a, b) {
+            const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+            return collator.compare(a, b);
+        }
+
+        /** 获取文件扩展名（小写） */
+        function getExt(name) {
+            return name.split('.').pop().toLowerCase();
+        }
+
+        /** 判断是否为图片文件 */
+        function isImage(file) {
+            const ext = getExt(file.name);
+            return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(ext);
+        }
+
+        /** 读取文件为 DataURL */
+        function readAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        /** 加载图片（从 DataURL） */
+        function loadImage(src) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = src;
+            });
+        }
+
+        /** 将图片绘制到 canvas 并压缩为 JPEG DataURL */
+        function compressImage(img, maxW, maxH, quality = 0.85) {
+            // 计算缩放比例，保持宽高比，完全显示在 maxW x maxH 内
+            const iw = img.width,
+                ih = img.height;
+            const scale = Math.min(maxW / iw, maxH / ih, 1); // 不放大
+            const w = iw * scale;
+            const h = ih * scale;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            return canvas.toDataURL('image/jpeg', quality);
+        }
+
+        /** 将图片绘制到 canvas 并旋转（向左旋转 = -90°） */
+        function rotateImageLeft(img) {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.height;
+            canvas.height = img.width;
+            const ctx = canvas.getContext('2d');
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.drawImage(img, -img.width / 2, -img.height / 2);
+            return canvas.toDataURL('image/jpeg', 0.85);
+        }
+
+        /** 格式化文件大小 */
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        /** 显示提示（自动隐藏） */
+        function showAlert(el, msg, type = 'success') {
+            el.className = 'alert ' + type;
+            el.textContent = msg;
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 5000);
+        }
+
+        /** 更新进度条 */
+        function updateProgress(progressEl, barEl, textEl, current, total) {
+            const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+            barEl.style.width = pct + '%';
+            textEl.textContent = `处理中 ${current} / ${total}`;
+            progressEl.classList.add('show');
+        }
+
+        /** 隐藏进度 */
+        function hideProgress(progressEl) {
+            progressEl.classList.remove('show');
+        }
+
+        // ================================================================
+        //  核心功能：生成 PDF（图片 → PDF）
+        // ================================================================
+
+        /**
+         * 生成 PDF（通用）
+         * @param {File[]} files         已排序的图片文件数组
+         * @param {string} orientation   'landscape' 或 'portrait'
+         * @param {number} imgW          图片在 PDF 中的目标宽度 (mm)
+         * @param {number} imgH          图片在 PDF 中的目标高度 (mm)
+         * @param {number} margin        边距 (mm)
+         * @param {number} rowsPerPage   每页行数（0 表示每页一张）
+         * @param {number} rowGap        行间距 (mm)，仅 rowsPerPage > 1 时有效
+         * @param {boolean} autoRotate   是否自动将竖图向左旋转（取证总结用）
+         * @param {Function} onProgress  进度回调 (current, total)
+         * @returns {Blob} PDF Blob
+         */
+        async function generatePDF(files, orientation, imgW, imgH, margin, rowsPerPage, rowGap, autoRotate, onProgress) {
+            const doc = new jspdf.jsPDF({
+                orientation: orientation,
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const pageW = orientation === 'landscape' ? 297 : 210;
+            const pageH = orientation === 'landscape' ? 210 : 297;
+            const usableW = pageW - 2 * margin;
+            const usableH = pageH - 2 * margin;
+
+            let pageIndex = 0; // 当前页码（从1开始）
+            let fileIndex = 0;
+            const total = files.length;
+
+            // 辅助：添加页码到当前页
+            function addPageNumber() {
+                doc.setFontSize(10);
+                doc.setTextColor(100);
+                const text = String(pageIndex);
+                doc.text(text, pageW / 2, pageH - margin / 2, { align: 'center' });
+            }
+
+            // 辅助：添加一张图片到当前页（指定位置和尺寸）
+            async function addImageToPage(file, x, y, w, h) {
+                const dataUrl = await readAsDataURL(file);
+                const img = await loadImage(dataUrl);
+
+                let finalDataUrl;
+                if (autoRotate && img.height > img.width) {
+                    // 竖图，向左旋转
+                    finalDataUrl = rotateImageLeft(img);
+                } else {
+                    // 压缩到目标尺寸内
+                    finalDataUrl = compressImage(img, w, h, 0.85);
+                }
+
+                // 再次加载压缩后的图片以获取实际尺寸
+                const compressedImg = await loadImage(finalDataUrl);
+                const cw = compressedImg.width;
+                const ch = compressedImg.height;
+
+                // 计算居中位置（在给定的 (x,y,w,h) 区域内居中）
+                const scale = Math.min(w / cw, h / ch);
+                const drawW = cw * scale;
+                const drawH = ch * scale;
+                const drawX = x + (w - drawW) / 2;
+                const drawY = y + (h - drawH) / 2;
+
+                doc.addImage(finalDataUrl, 'JPEG', drawX, drawY, drawW, drawH);
+            }
+
+            // 遍历所有图片
+            for (let i = 0; i < total; i++) {
+                const file = files[i];
+
+                if (rowsPerPage <= 1) {
+                    // 每页一张
+                    if (i > 0) {
+                        doc.addPage();
+                    }
+                    pageIndex++;
+                    await addImageToPage(file, margin, margin, usableW, usableH);
+                    addPageNumber();
+                } else {
+                    // 每页多张（取证总结）
+                    const posInPage = i % rowsPerPage;
+                    if (posInPage === 0 && i > 0) {
+                        doc.addPage();
+                        pageIndex++;
+                    } else if (i === 0) {
+                        pageIndex = 1;
+                    }
+
+                    const rowHeight = imgH;
+                    const gap = rowGap;
+                    const yStart = margin + posInPage * (rowHeight + gap);
+                    await addImageToPage(file, margin, yStart, usableW, rowHeight);
+
+                    // 如果是该页最后一张或最后一张图片，添加页码
+                    if (posInPage === rowsPerPage - 1 || i === total - 1) {
+                        addPageNumber();
+                    }
+                }
+
+                if (onProgress) onProgress(i + 1, total);
+            }
+
+            // 如果没有任何图片，返回空文档
+            if (total === 0) {
+                doc.addPage();
+                doc.setFontSize(16);
+                doc.text('无图片', pageW / 2, pageH / 2, { align: 'center' });
+            }
+
+            return doc.output('blob');
+        }
+
+        // ================================================================
+        //  模块 1、2、3 共用逻辑
+        // ================================================================
+
+        function setupImageTab(inputId, fileListId, generateId, progressId, progressTextId, progressBarId, alertId,
+            orientation, imgW, imgH, rowsPerPage, rowGap, autoRotate) {
+            const input = document.getElementById(inputId);
+            const fileListEl = document.getElementById(fileListId);
+            const generateBtn = document.getElementById(generateId);
+            const progressEl = document.getElementById(progressId);
+            const progressText = document.getElementById(progressTextId);
+            const progressBar = document.getElementById(progressBarId);
+            const alertEl = document.getElementById(alertId);
+
+            let files = []; // 当前选择的图片文件（已排序）
+
+            // 监听文件选择
+            input.addEventListener('change', function(e) {
+                const allFiles = Array.from(e.target.files || []);
+                // 只保留图片
+                const imageFiles = allFiles.filter(f => isImage(f));
+                // 按文件名自然排序
+                imageFiles.sort((a, b) => naturalSort(a.name, b.name));
+                files = imageFiles;
+
+                // 显示文件列表
+                if (files.length === 0) {
+                    fileListEl.innerHTML = '<div style="color:#999;">未选择图片或文件夹中无图片</div>';
+                    generateBtn.disabled = true;
+                    return;
+                }
+                let html = '';
+                files.forEach((f, idx) => {
+                    html += `<div class="file-item">
+                                <span class="index">${idx + 1}</span>
+                                <span class="name">${f.name}</span>
+                                <span class="size">${formatSize(f.size)}</span>
+                            </div>`;
+                });
+                fileListEl.innerHTML = html;
+                generateBtn.disabled = false;
+                hideProgress(progressEl);
+                alertEl.style.display = 'none';
+            });
+
+            // 生成 PDF
+            generateBtn.addEventListener('click', async function() {
+                if (files.length === 0) {
+                    showAlert(alertEl, '请先选择图片文件夹', 'error');
+                    return;
+                }
+
+                generateBtn.disabled = true;
+                hideProgress(progressEl);
+                alertEl.style.display = 'none';
+
+                try {
+                    const blob = await generatePDF(
+                        files,
+                        orientation,
+                        imgW,
+                        imgH,
+                        20, // margin
+                        rowsPerPage,
+                        rowGap,
+                        autoRotate,
+                        (current, total) => {
+                            updateProgress(progressEl, progressBar, progressText, current, total);
+                        }
+                    );
+
+                    // 下载
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `output_${Date.now()}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    showAlert(alertEl, `✅ PDF 生成成功！共 ${files.length} 张图片`);
+                } catch (err) {
+                    console.error(err);
+                    showAlert(alertEl, '❌ 生成失败：' + err.message, 'error');
+                } finally {
+                    generateBtn.disabled = false;
+                    hideProgress(progressEl);
+                }
+            });
+        }
+
+        // ================================================================
+        //  初始化模块 1、2、3
+        // ================================================================
+
+        // 模块1：时间戳横版
+        setupImageTab(
+            'input1', 'fileList1', 'generate1', 'progress1', 'progressText1', 'progressBar1', 'alert1',
+            'landscape', 256.7, 144.4, 1, 0, false
+        );
+
+        // 模块2：时间戳竖版
+        setupImageTab(
+            'input2', 'fileList2', 'generate2', 'progress2', 'progressText2', 'progressBar2', 'alert2',
+            'portrait', 113.9, 253.2, 1, 0, false
+        );
+
+        // 模块3：取证总结（每页3张，竖图自动旋转）
+        setupImageTab(
+            'input3', 'fileList3', 'generate3', 'progress3', 'progressText3', 'progressBar3', 'alert3',
+            'portrait', 169.3, 76.2, 3, 5, true // rowGap = 5mm
+        );
+
+        // ================================================================
+        //  模块4：PDF 合并
+        // ================================================================
+
+        (function() {
+            const input = document.getElementById('input4');
+            const sortList = document.getElementById('sortList4');
+            const mergeBtn = document.getElementById('mergeBtn');
+            const progressEl = document.getElementById('progress4');
+            const progressText = document.getElementById('progressText4');
+            const progressBar = document.getElementById('progressBar4');
+            const alertEl = document.getElementById('alert4');
+
+            let pdfFiles = []; // { file, name }
+
+            // 渲染拖拽列表
+            function renderSortList() {
+                if (pdfFiles.length === 0) {
+                    sortList.innerHTML = '<li style="cursor:default;color:#999;">请上传 PDF 文件</li>';
+                    mergeBtn.disabled = true;
+                    return;
+                }
+                let html = '';
+                pdfFiles.forEach((item, idx) => {
+                    html += `<li data-index="${idx}">
+                                <span class="handle">☰</span>
+                                <span>${idx + 1}. ${item.name}</span>
+                            </li>`;
+                });
+                sortList.innerHTML = html;
+                mergeBtn.disabled = false;
+
+                // 初始化 SortableJS
+                Sortable.create(sortList, {
+                    handle: '.handle',
+                    animation: 150,
+                    onEnd: function(evt) {
+                        const items = Array.from(sortList.children);
+                        const newOrder = items.map(li => parseInt(li.dataset.index));
+                        pdfFiles = newOrder.map(idx => pdfFiles[idx]);
+                        // 重新渲染以更新序号
+                        renderSortList();
+                    }
+                });
+            }
+
+            // 监听文件上传
+            input.addEventListener('change', function(e) {
+                const allFiles = Array.from(e.target.files || []);
+                const pdfs = allFiles.filter(f => getExt(f.name) === 'pdf');
+                if (pdfs.length === 0) {
+                    showAlert(alertEl, '请选择 PDF 文件', 'error');
+                    return;
+                }
+                // 合并到现有列表（避免重复？简单覆盖）
+                pdfFiles = pdfs.map(f => ({ file: f, name: f.name }));
+                renderSortList();
+                hideProgress(progressEl);
+                alertEl.style.display = 'none';
+            });
+
+            // 合并按钮
+            mergeBtn.addEventListener('click', async function() {
+                if (pdfFiles.length === 0) {
+                    showAlert(alertEl, '请先上传 PDF 文件', 'error');
+                    return;
+                }
+
+                mergeBtn.disabled = true;
+                hideProgress(progressEl);
+                alertEl.style.display = 'none';
+                progressEl.classList.add('show');
+                progressText.textContent = '正在合并...';
+                progressBar.style.width = '0%';
+
+                try {
+                    const mergedPdf = await pdfLib.PDFDocument.create();
+                    const total = pdfFiles.length;
+
+                    for (let i = 0; i < total; i++) {
+                        const file = pdfFiles[i].file;
+                        const arrayBuffer = await file.arrayBuffer();
+                        const pdfDoc = await pdfLib.PDFDocument.load(arrayBuffer);
+                        const pages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
+                        pages.forEach(page => mergedPdf.addPage(page));
+
+                        const pct = Math.round(((i + 1) / total) * 100);
+                        progressBar.style.width = pct + '%';
+                        progressText.textContent = `合并中 ${i + 1} / ${total}`;
+                        // 让 UI 更新
+                        await new Promise(r => setTimeout(r, 10));
+                    }
+
+                    const pdfBytes = await mergedPdf.save();
+                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `merged_${Date.now()}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    showAlert(alertEl, `✅ 合并成功！共 ${total} 个 PDF`);
+                } catch (err) {
+                    console.error(err);
+                    showAlert(alertEl, '❌ 合并失败：' + err.message, 'error');
+                } finally {
+                    mergeBtn.disabled = false;
+                    hideProgress(progressEl);
+                }
+            });
+        })();
+
+        // ================================================================
+        //  选项卡切换
+        // ================================================================
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById(this.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ================================================================
+        //  额外说明：当文件夹为空时禁用按钮
+        // ================================================================
+
+        // 对于每个 input，如果用户选择了文件但过滤后无图片，按钮保持禁用
+        // 已在 setupImageTab 中处理
+    </script>
+
+</body>
+</html>
