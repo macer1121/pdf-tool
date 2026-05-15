@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>图片/PDF 转 PDF 工具</title>
-    <!-- 引入依赖库 -->
+    <title>图片/PDF 转 PDF 工具 · 画质可控</title>
+    <!-- 依赖库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js">
@@ -12,37 +12,120 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js">
     </script>
     <style>
-        /* ===== 全局样式 ===== */
+        /* ===== 全局 ===== */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
         }
         body {
             background: #f0f2f5;
             padding: 20px;
         }
         .container {
-            max-width: 1100px;
+            max-width: 1140px;
             margin: 0 auto;
             background: #fff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            padding: 28px 32px;
+            border-radius: 14px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
         }
         h1 {
             font-size: 24px;
             color: #1a73e8;
-            margin-bottom: 20px;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+        }
+        h1 small {
+            font-size: 14px;
+            font-weight: 400;
+            color: #666;
+            margin-left: 8px;
         }
         h2 {
             font-size: 18px;
-            color: #333;
-            margin: 15px 0 10px;
+            color: #222;
+            margin: 18px 0 10px;
+        }
+
+        /* ===== 画质控制条 (全局) ===== */
+        .quality-bar {
+            background: #f7f9fc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px 20px;
+            margin: 12px 0 18px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px 30px;
+        }
+        .quality-bar label {
+            font-weight: 600;
+            font-size: 15px;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .quality-bar label i {
+            font-style: normal;
+            font-size: 18px;
+        }
+        .quality-bar input[type="range"] {
+            width: 220px;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: linear-gradient(to right, #1a73e8, #1a73e8);
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+        }
+        .quality-bar input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #1a73e8;
+            border: 2px solid #fff;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
+            transition: 0.15s;
+        }
+        .quality-bar input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.12);
+        }
+        .quality-bar input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #1a73e8;
+            border: 2px solid #fff;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
+        }
+        .quality-value {
+            font-weight: 700;
+            font-size: 18px;
+            color: #0b2b4a;
+            min-width: 48px;
+            text-align: center;
+            background: #fff;
+            padding: 2px 12px;
+            border-radius: 20px;
+            border: 1px solid #d0d7de;
+        }
+        .quality-hint {
+            font-size: 13px;
+            color: #64748b;
+            margin-left: auto;
+        }
+        .quality-hint span {
+            color: #1a73e8;
+            font-weight: 500;
         }
 
         /* ===== 选项卡 ===== */
@@ -51,18 +134,18 @@
             gap: 6px;
             border-bottom: 2px solid #e8e8e8;
             padding-bottom: 2px;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
             flex-wrap: wrap;
         }
         .tab {
-            padding: 10px 22px;
+            padding: 10px 24px;
             border: none;
             background: #f5f5f5;
             border-radius: 8px 8px 0 0;
             cursor: pointer;
             font-size: 15px;
             font-weight: 500;
-            color: #666;
+            color: #555;
             transition: all 0.2s;
         }
         .tab:hover {
@@ -75,7 +158,7 @@
         }
         .tab-content {
             display: none;
-            animation: fadeIn 0.3s;
+            animation: fadeIn 0.3s ease;
         }
         .tab-content.active {
             display: block;
@@ -91,7 +174,7 @@
             }
         }
 
-        /* ===== 表单元素 ===== */
+        /* ===== 表单 ===== */
         .upload-area {
             display: flex;
             flex-wrap: wrap;
@@ -100,34 +183,42 @@
             margin: 10px 0;
         }
         .upload-area input[type="file"] {
-            padding: 8px 12px;
-            border: 1px dashed #aaa;
+            padding: 8px 14px;
+            border: 1px dashed #bbb;
             border-radius: 6px;
             background: #fafafa;
             cursor: pointer;
             flex: 1;
             min-width: 200px;
+            transition: border 0.2s;
         }
         .upload-area input[type="file"]:hover {
             border-color: #1a73e8;
         }
         .btn {
-            padding: 10px 24px;
+            padding: 10px 26px;
             border: none;
             border-radius: 6px;
             font-size: 15px;
             font-weight: 500;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.2s, transform 0.1s;
             color: #fff;
             background: #1a73e8;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
         .btn:hover {
             background: #1557b0;
         }
+        .btn:active {
+            transform: scale(0.97);
+        }
         .btn:disabled {
             background: #ccc;
             cursor: not-allowed;
+            transform: none;
         }
         .btn-success {
             background: #28a745;
@@ -142,18 +233,18 @@
             background: #c82333;
         }
         .btn-sm {
-            padding: 5px 14px;
+            padding: 6px 16px;
             font-size: 13px;
         }
 
         /* ===== 文件列表 ===== */
         .file-list {
             margin: 12px 0;
-            padding: 10px 14px;
+            padding: 10px 16px;
             background: #f8f9fa;
             border-radius: 6px;
             border: 1px solid #e9ecef;
-            max-height: 300px;
+            max-height: 280px;
             overflow-y: auto;
             font-size: 14px;
         }
@@ -184,7 +275,7 @@
         /* ===== 进度条 ===== */
         .progress-area {
             margin: 12px 0;
-            padding: 10px 14px;
+            padding: 10px 16px;
             background: #e8f0fe;
             border-radius: 6px;
             display: none;
@@ -211,14 +302,14 @@
             transition: width 0.3s;
         }
 
-        /* ===== 拖拽排序容器 ===== */
+        /* ===== 拖拽排序 ===== */
         .sort-list {
             list-style: none;
             padding: 0;
             margin: 10px 0;
         }
         .sort-list li {
-            padding: 8px 14px;
+            padding: 8px 16px;
             background: #f8f9fa;
             border: 1px solid #e9ecef;
             border-radius: 6px;
@@ -226,20 +317,23 @@
             cursor: grab;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             font-size: 14px;
+            transition: background 0.15s;
         }
         .sort-list li:active {
             cursor: grabbing;
+            background: #e9ecef;
         }
         .sort-list li .handle {
             color: #999;
-            font-size: 18px;
+            font-size: 20px;
+            user-select: none;
         }
 
-        /* ===== 提示信息 ===== */
+        /* ===== 提示 ===== */
         .alert {
-            padding: 10px 16px;
+            padding: 10px 18px;
             border-radius: 6px;
             margin: 10px 0;
             font-size: 14px;
@@ -257,7 +351,7 @@
         }
 
         /* ===== 响应式 ===== */
-        @media (max-width: 600px) {
+        @media (max-width: 700px) {
             .container {
                 padding: 16px;
             }
@@ -269,91 +363,150 @@
                 flex-direction: column;
                 align-items: stretch;
             }
+            .quality-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            .quality-bar input[type="range"] {
+                width: 100%;
+            }
+            .quality-hint {
+                margin-left: 0;
+            }
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>📄 图片 / PDF 转 PDF 工具</h1>
 
-        <!-- 选项卡 -->
-        <div class="tabs">
+        <!-- ========== 标题 ========== -->
+        <h1>
+            📄 图片 / PDF 转 PDF
+            <small>稳定画质 · 四合一工具</small>
+        </h1>
+
+        <!-- ========== ★ 全局画质控制滑块 ========== -->
+        <div class="quality-bar" id="qualityBar">
+            <label>
+                <i>🎨</i> 画质控制
+            </label>
+            <input type="range" id="qualitySlider" min="0.1" max="1.0" step="0.05" value="0.95" />
+            <span class="quality-value" id="qualityDisplay">0.95</span>
+            <span class="quality-hint">
+                值越高越清晰，文件略大 · 当前 <span id="qualityHintLabel">高画质</span>
+            </span>
+        </div>
+
+        <!-- ========== 选项卡 ========== -->
+        <div class="tabs" id="tabHeaders">
             <button class="tab active" data-tab="tab1">⏱ 时间戳横版</button>
             <button class="tab" data-tab="tab2">⏱ 时间戳竖版</button>
             <button class="tab" data-tab="tab3">🔍 取证总结</button>
             <button class="tab" data-tab="tab4">📎 PDF 合并</button>
         </div>
 
-        <!-- ==================== Tab1: 时间戳横版 ==================== -->
+        <!-- ===================== Tab1: 时间戳横版 ===================== -->
         <div id="tab1" class="tab-content active">
             <h2>⏱ 时间戳横版</h2>
-            <p style="color:#666;font-size:14px;">上传图片文件夹，每张图片一页，PDF 横向，边距 2cm，页码居中。</p>
+            <p style="color:#555;font-size:14px;">每张图片一页，PDF 横向 (A4)，边距 2cm，页码居中。</p>
             <div class="upload-area">
                 <input type="file" id="input1" webkitdirectory multiple accept="image/*" />
-                <button class="btn" id="generate1" disabled>生成 PDF 并下载</button>
+                <button class="btn" id="generate1" disabled>⚡ 生成 PDF 并下载</button>
             </div>
             <div class="file-list" id="fileList1"></div>
             <div class="progress-area" id="progress1">
-                <div class="progress-text" id="progressText1">准备中...</div>
+                <div class="progress-text" id="progressText1">准备中…</div>
                 <div class="progress-bar-bg"><div class="progress-bar" id="progressBar1"></div></div>
             </div>
             <div class="alert" id="alert1"></div>
         </div>
 
-        <!-- ==================== Tab2: 时间戳竖版 ==================== -->
+        <!-- ===================== Tab2: 时间戳竖版 ===================== -->
         <div id="tab2" class="tab-content">
             <h2>⏱ 时间戳竖版</h2>
-            <p style="color:#666;font-size:14px;">上传图片文件夹，每张图片一页，PDF 竖向，边距 2cm，页码居中。</p>
+            <p style="color:#555;font-size:14px;">每张图片一页，PDF 竖向 (A4)，边距 2cm，页码居中。</p>
             <div class="upload-area">
                 <input type="file" id="input2" webkitdirectory multiple accept="image/*" />
-                <button class="btn" id="generate2" disabled>生成 PDF 并下载</button>
+                <button class="btn" id="generate2" disabled>⚡ 生成 PDF 并下载</button>
             </div>
             <div class="file-list" id="fileList2"></div>
             <div class="progress-area" id="progress2">
-                <div class="progress-text" id="progressText2">准备中...</div>
+                <div class="progress-text" id="progressText2">准备中…</div>
                 <div class="progress-bar-bg"><div class="progress-bar" id="progressBar2"></div></div>
             </div>
             <div class="alert" id="alert2"></div>
         </div>
 
-        <!-- ==================== Tab3: 取证总结 ==================== -->
+        <!-- ===================== Tab3: 取证总结 ===================== -->
         <div id="tab3" class="tab-content">
             <h2>🔍 取证总结</h2>
-            <p style="color:#666;font-size:14px;">上传图片文件夹，自动将竖图向左旋转为横版，每页 3 张图，PDF 竖向，边距 2cm，页码居中。</p>
+            <p style="color:#555;font-size:14px;">竖图自动左旋为横版，每页 3 张，PDF 竖向，边距 2cm，页码居中。</p>
             <div class="upload-area">
                 <input type="file" id="input3" webkitdirectory multiple accept="image/*" />
-                <button class="btn" id="generate3" disabled>生成 PDF 并下载</button>
+                <button class="btn" id="generate3" disabled>⚡ 生成 PDF 并下载</button>
             </div>
             <div class="file-list" id="fileList3"></div>
             <div class="progress-area" id="progress3">
-                <div class="progress-text" id="progressText3">准备中...</div>
+                <div class="progress-text" id="progressText3">准备中…</div>
                 <div class="progress-bar-bg"><div class="progress-bar" id="progressBar3"></div></div>
             </div>
             <div class="alert" id="alert3"></div>
         </div>
 
-        <!-- ==================== Tab4: PDF 合并 ==================== -->
+        <!-- ===================== Tab4: PDF 合并 ===================== -->
         <div id="tab4" class="tab-content">
             <h2>📎 PDF 合并</h2>
-            <p style="color:#666;font-size:14px;">上传多个 PDF 文件，拖拽调整顺序，合并为一个 PDF 下载。</p>
+            <p style="color:#555;font-size:14px;">上传多个 PDF，拖拽排序，合并为一个 PDF 下载。</p>
             <div class="upload-area">
                 <input type="file" id="input4" multiple accept=".pdf" />
-                <button class="btn btn-success" id="mergeBtn" disabled>合并并下载</button>
+                <button class="btn btn-success" id="mergeBtn" disabled>📎 合并并下载</button>
             </div>
             <ul class="sort-list" id="sortList4"></ul>
             <div class="progress-area" id="progress4">
-                <div class="progress-text" id="progressText4">准备中...</div>
+                <div class="progress-text" id="progressText4">准备中…</div>
                 <div class="progress-bar-bg"><div class="progress-bar" id="progressBar4"></div></div>
             </div>
             <div class="alert" id="alert4"></div>
+            <p style="font-size:13px;color:#999;margin-top:8px;">💡 合并时不使用画质滑块，直接保留原始 PDF 内容。</p>
         </div>
 
     </div>
 
+    <!-- ================================================================ -->
+    <!-- JavaScript -->
+    <!-- ================================================================ -->
     <script>
         // ================================================================
-        //  全局工具函数
+        //  1. 全局画质控制
+        // ================================================================
+
+        const qualitySlider = document.getElementById('qualitySlider');
+        const qualityDisplay = document.getElementById('qualityDisplay');
+        const qualityHintLabel = document.getElementById('qualityHintLabel');
+
+        /** 当前画质 (0.1 ~ 1.0)，所有图片压缩统一使用此值 */
+        let currentQuality = 0.95;
+
+        function updateQualityUI() {
+            const val = parseFloat(qualitySlider.value);
+            currentQuality = val;
+            qualityDisplay.textContent = val.toFixed(2);
+            // 语义化标签
+            if (val >= 0.95) qualityHintLabel.textContent = '极高画质';
+            else if (val >= 0.85) qualityHintLabel.textContent = '高画质';
+            else if (val >= 0.7) qualityHintLabel.textContent = '中等画质';
+            else if (val >= 0.5) qualityHintLabel.textContent = '低画质';
+            else qualityHintLabel.textContent = '极低画质';
+        }
+
+        qualitySlider.addEventListener('input', updateQualityUI);
+        // 初始化
+        updateQualityUI();
+
+        // ================================================================
+        //  2. 工具函数
         // ================================================================
 
         /** 自然排序（支持数字） */
@@ -362,18 +515,18 @@
             return collator.compare(a, b);
         }
 
-        /** 获取文件扩展名（小写） */
+        /** 获取扩展名（小写） */
         function getExt(name) {
             return name.split('.').pop().toLowerCase();
         }
 
-        /** 判断是否为图片文件 */
+        /** 是否为图片 */
         function isImage(file) {
             const ext = getExt(file.name);
             return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(ext);
         }
 
-        /** 读取文件为 DataURL */
+        /** 读取 File 为 DataURL */
         function readAsDataURL(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -383,7 +536,7 @@
             });
         }
 
-        /** 加载图片（从 DataURL） */
+        /** 加载 Image 对象 */
         function loadImage(src) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -393,24 +546,32 @@
             });
         }
 
-        /** 将图片绘制到 canvas 并压缩为 JPEG DataURL */
-        function compressImage(img, maxW, maxH, quality = 0.85) {
-            // 计算缩放比例，保持宽高比，完全显示在 maxW x maxH 内
+        /**
+         * 压缩图片到目标尺寸内，使用全局 currentQuality
+         * @param {HTMLImageElement} img
+         * @param {number} maxW  目标最大宽度 (px)
+         * @param {number} maxH  目标最大高度 (px)
+         * @returns {string} JPEG DataURL
+         */
+        function compressImage(img, maxW, maxH) {
             const iw = img.width,
                 ih = img.height;
-            const scale = Math.min(maxW / iw, maxH / ih, 1); // 不放大
-            const w = iw * scale;
-            const h = ih * scale;
+            const scale = Math.min(maxW / iw, maxH / ih, 1);
+            const w = Math.round(iw * scale);
+            const h = Math.round(ih * scale);
 
             const canvas = document.createElement('canvas');
             canvas.width = w;
             canvas.height = h;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, w, h);
-            return canvas.toDataURL('image/jpeg', quality);
+            // ★ 使用全局画质
+            return canvas.toDataURL('image/jpeg', currentQuality);
         }
 
-        /** 将图片绘制到 canvas 并旋转（向左旋转 = -90°） */
+        /**
+         * 将图片向左旋转 90°（竖图变横版），使用全局 currentQuality
+         */
         function rotateImageLeft(img) {
             const canvas = document.createElement('canvas');
             canvas.width = img.height;
@@ -419,7 +580,7 @@
             ctx.translate(canvas.width / 2, canvas.height / 2);
             ctx.rotate(-Math.PI / 2);
             ctx.drawImage(img, -img.width / 2, -img.height / 2);
-            return canvas.toDataURL('image/jpeg', 0.85);
+            return canvas.toDataURL('image/jpeg', currentQuality);
         }
 
         /** 格式化文件大小 */
@@ -434,7 +595,8 @@
             el.className = 'alert ' + type;
             el.textContent = msg;
             el.style.display = 'block';
-            setTimeout(() => { el.style.display = 'none'; }, 5000);
+            clearTimeout(el._timer);
+            el._timer = setTimeout(() => { el.style.display = 'none'; }, 5000);
         }
 
         /** 更新进度条 */
@@ -445,26 +607,25 @@
             progressEl.classList.add('show');
         }
 
-        /** 隐藏进度 */
         function hideProgress(progressEl) {
             progressEl.classList.remove('show');
         }
 
         // ================================================================
-        //  核心功能：生成 PDF（图片 → PDF）
+        //  3. 核心 PDF 生成（图片 → PDF）
         // ================================================================
 
         /**
-         * 生成 PDF（通用）
-         * @param {File[]} files         已排序的图片文件数组
-         * @param {string} orientation   'landscape' 或 'portrait'
-         * @param {number} imgW          图片在 PDF 中的目标宽度 (mm)
-         * @param {number} imgH          图片在 PDF 中的目标高度 (mm)
+         * 生成 PDF
+         * @param {File[]} files         已排序图片
+         * @param {string} orientation   'landscape' | 'portrait'
+         * @param {number} imgW          图片目标宽度 (mm)
+         * @param {number} imgH          图片目标高度 (mm)
          * @param {number} margin        边距 (mm)
-         * @param {number} rowsPerPage   每页行数（0 表示每页一张）
-         * @param {number} rowGap        行间距 (mm)，仅 rowsPerPage > 1 时有效
-         * @param {boolean} autoRotate   是否自动将竖图向左旋转（取证总结用）
-         * @param {Function} onProgress  进度回调 (current, total)
+         * @param {number} rowsPerPage   每页行数 (1=单张)
+         * @param {number} rowGap        行间距 (mm)
+         * @param {boolean} autoRotate   竖图自动左旋
+         * @param {Function} onProgress  回调 (current, total)
          * @returns {Blob} PDF Blob
          */
         async function generatePDF(files, orientation, imgW, imgH, margin, rowsPerPage, rowGap, autoRotate, onProgress) {
@@ -479,38 +640,34 @@
             const usableW = pageW - 2 * margin;
             const usableH = pageH - 2 * margin;
 
-            let pageIndex = 0; // 当前页码（从1开始）
-            let fileIndex = 0;
+            let pageIndex = 0;
             const total = files.length;
 
-            // 辅助：添加页码到当前页
+            // 添加页码
             function addPageNumber() {
                 doc.setFontSize(10);
-                doc.setTextColor(100);
-                const text = String(pageIndex);
-                doc.text(text, pageW / 2, pageH - margin / 2, { align: 'center' });
+                doc.setTextColor(80);
+                doc.text(String(pageIndex), pageW / 2, pageH - margin / 2, { align: 'center' });
             }
 
-            // 辅助：添加一张图片到当前页（指定位置和尺寸）
+            // 添加一张图片到当前页
             async function addImageToPage(file, x, y, w, h) {
                 const dataUrl = await readAsDataURL(file);
                 const img = await loadImage(dataUrl);
 
                 let finalDataUrl;
                 if (autoRotate && img.height > img.width) {
-                    // 竖图，向左旋转
+                    // 竖图左旋
                     finalDataUrl = rotateImageLeft(img);
                 } else {
-                    // 压缩到目标尺寸内
-                    finalDataUrl = compressImage(img, w, h, 0.85);
+                    // 常规压缩，★ 使用全局 currentQuality
+                    finalDataUrl = compressImage(img, w * 10, h * 10); // 用高像素保证细节
                 }
 
-                // 再次加载压缩后的图片以获取实际尺寸
-                const compressedImg = await loadImage(finalDataUrl);
-                const cw = compressedImg.width;
-                const ch = compressedImg.height;
+                const compressed = await loadImage(finalDataUrl);
+                const cw = compressed.width;
+                const ch = compressed.height;
 
-                // 计算居中位置（在给定的 (x,y,w,h) 区域内居中）
                 const scale = Math.min(w / cw, h / ch);
                 const drawW = cw * scale;
                 const drawH = ch * scale;
@@ -520,20 +677,17 @@
                 doc.addImage(finalDataUrl, 'JPEG', drawX, drawY, drawW, drawH);
             }
 
-            // 遍历所有图片
             for (let i = 0; i < total; i++) {
                 const file = files[i];
 
                 if (rowsPerPage <= 1) {
-                    // 每页一张
-                    if (i > 0) {
-                        doc.addPage();
-                    }
+                    // —— 每页一张 ——
+                    if (i > 0) doc.addPage();
                     pageIndex++;
                     await addImageToPage(file, margin, margin, usableW, usableH);
                     addPageNumber();
                 } else {
-                    // 每页多张（取证总结）
+                    // —— 每页多张 (取证总结) ——
                     const posInPage = i % rowsPerPage;
                     if (posInPage === 0 && i > 0) {
                         doc.addPage();
@@ -541,13 +695,11 @@
                     } else if (i === 0) {
                         pageIndex = 1;
                     }
-
                     const rowHeight = imgH;
                     const gap = rowGap;
                     const yStart = margin + posInPage * (rowHeight + gap);
                     await addImageToPage(file, margin, yStart, usableW, rowHeight);
 
-                    // 如果是该页最后一张或最后一张图片，添加页码
                     if (posInPage === rowsPerPage - 1 || i === total - 1) {
                         addPageNumber();
                     }
@@ -556,7 +708,6 @@
                 if (onProgress) onProgress(i + 1, total);
             }
 
-            // 如果没有任何图片，返回空文档
             if (total === 0) {
                 doc.addPage();
                 doc.setFontSize(16);
@@ -567,11 +718,12 @@
         }
 
         // ================================================================
-        //  模块 1、2、3 共用逻辑
+        //  4. 图片选项卡通用初始化
         // ================================================================
 
         function setupImageTab(inputId, fileListId, generateId, progressId, progressTextId, progressBarId, alertId,
             orientation, imgW, imgH, rowsPerPage, rowGap, autoRotate) {
+
             const input = document.getElementById(inputId);
             const fileListEl = document.getElementById(fileListId);
             const generateBtn = document.getElementById(generateId);
@@ -580,18 +732,14 @@
             const progressBar = document.getElementById(progressBarId);
             const alertEl = document.getElementById(alertId);
 
-            let files = []; // 当前选择的图片文件（已排序）
+            let files = [];
 
-            // 监听文件选择
             input.addEventListener('change', function(e) {
-                const allFiles = Array.from(e.target.files || []);
-                // 只保留图片
-                const imageFiles = allFiles.filter(f => isImage(f));
-                // 按文件名自然排序
-                imageFiles.sort((a, b) => naturalSort(a.name, b.name));
-                files = imageFiles;
+                const all = Array.from(e.target.files || []);
+                const images = all.filter(f => isImage(f));
+                images.sort((a, b) => naturalSort(a.name, b.name));
+                files = images;
 
-                // 显示文件列表
                 if (files.length === 0) {
                     fileListEl.innerHTML = '<div style="color:#999;">未选择图片或文件夹中无图片</div>';
                     generateBtn.disabled = true;
@@ -611,7 +759,6 @@
                 alertEl.style.display = 'none';
             });
 
-            // 生成 PDF
             generateBtn.addEventListener('click', async function() {
                 if (files.length === 0) {
                     showAlert(alertEl, '请先选择图片文件夹', 'error');
@@ -623,6 +770,11 @@
                 alertEl.style.display = 'none';
 
                 try {
+                    // ★ 每次生成前读取当前画质（确保使用最新滑块值）
+                    const quality = currentQuality;
+                    // 短暂提示
+                    console.log('使用画质:', quality);
+
                     const blob = await generatePDF(
                         files,
                         orientation,
@@ -632,12 +784,11 @@
                         rowsPerPage,
                         rowGap,
                         autoRotate,
-                        (current, total) => {
-                            updateProgress(progressEl, progressBar, progressText, current, total);
+                        (cur, total) => {
+                            updateProgress(progressEl, progressBar, progressText, cur, total);
                         }
                     );
 
-                    // 下载
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
@@ -647,7 +798,7 @@
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
 
-                    showAlert(alertEl, `✅ PDF 生成成功！共 ${files.length} 张图片`);
+                    showAlert(alertEl, `✅ 生成成功！共 ${files.length} 张图片 · 画质 ${quality.toFixed(2)}`);
                 } catch (err) {
                     console.error(err);
                     showAlert(alertEl, '❌ 生成失败：' + err.message, 'error');
@@ -659,29 +810,29 @@
         }
 
         // ================================================================
-        //  初始化模块 1、2、3
+        //  5. 初始化三个图片模块
         // ================================================================
 
-        // 模块1：时间戳横版
+        // 模块1: 时间戳横版
         setupImageTab(
             'input1', 'fileList1', 'generate1', 'progress1', 'progressText1', 'progressBar1', 'alert1',
             'landscape', 256.7, 144.4, 1, 0, false
         );
 
-        // 模块2：时间戳竖版
+        // 模块2: 时间戳竖版
         setupImageTab(
             'input2', 'fileList2', 'generate2', 'progress2', 'progressText2', 'progressBar2', 'alert2',
             'portrait', 113.9, 253.2, 1, 0, false
         );
 
-        // 模块3：取证总结（每页3张，竖图自动旋转）
+        // 模块3: 取证总结 (每页3张，竖图左旋)
         setupImageTab(
             'input3', 'fileList3', 'generate3', 'progress3', 'progressText3', 'progressBar3', 'alert3',
-            'portrait', 169.3, 76.2, 3, 5, true // rowGap = 5mm
+            'portrait', 169.3, 76.2, 3, 5, true
         );
 
         // ================================================================
-        //  模块4：PDF 合并
+        //  6. PDF 合并模块 (不受画质滑块影响)
         // ================================================================
 
         (function() {
@@ -693,9 +844,8 @@
             const progressBar = document.getElementById('progressBar4');
             const alertEl = document.getElementById('alert4');
 
-            let pdfFiles = []; // { file, name }
+            let pdfFiles = [];
 
-            // 渲染拖拽列表
             function renderSortList() {
                 if (pdfFiles.length === 0) {
                     sortList.innerHTML = '<li style="cursor:default;color:#999;">请上传 PDF 文件</li>';
@@ -712,7 +862,6 @@
                 sortList.innerHTML = html;
                 mergeBtn.disabled = false;
 
-                // 初始化 SortableJS
                 Sortable.create(sortList, {
                     handle: '.handle',
                     animation: 150,
@@ -720,28 +869,24 @@
                         const items = Array.from(sortList.children);
                         const newOrder = items.map(li => parseInt(li.dataset.index));
                         pdfFiles = newOrder.map(idx => pdfFiles[idx]);
-                        // 重新渲染以更新序号
                         renderSortList();
                     }
                 });
             }
 
-            // 监听文件上传
             input.addEventListener('change', function(e) {
-                const allFiles = Array.from(e.target.files || []);
-                const pdfs = allFiles.filter(f => getExt(f.name) === 'pdf');
+                const all = Array.from(e.target.files || []);
+                const pdfs = all.filter(f => getExt(f.name) === 'pdf');
                 if (pdfs.length === 0) {
                     showAlert(alertEl, '请选择 PDF 文件', 'error');
                     return;
                 }
-                // 合并到现有列表（避免重复？简单覆盖）
                 pdfFiles = pdfs.map(f => ({ file: f, name: f.name }));
                 renderSortList();
                 hideProgress(progressEl);
                 alertEl.style.display = 'none';
             });
 
-            // 合并按钮
             mergeBtn.addEventListener('click', async function() {
                 if (pdfFiles.length === 0) {
                     showAlert(alertEl, '请先上传 PDF 文件', 'error');
@@ -752,7 +897,7 @@
                 hideProgress(progressEl);
                 alertEl.style.display = 'none';
                 progressEl.classList.add('show');
-                progressText.textContent = '正在合并...';
+                progressText.textContent = '正在合并…';
                 progressBar.style.width = '0%';
 
                 try {
@@ -769,7 +914,6 @@
                         const pct = Math.round(((i + 1) / total) * 100);
                         progressBar.style.width = pct + '%';
                         progressText.textContent = `合并中 ${i + 1} / ${total}`;
-                        // 让 UI 更新
                         await new Promise(r => setTimeout(r, 10));
                     }
 
@@ -796,7 +940,7 @@
         })();
 
         // ================================================================
-        //  选项卡切换
+        //  7. 选项卡切换
         // ================================================================
 
         document.querySelectorAll('.tab').forEach(tab => {
@@ -808,12 +952,10 @@
             });
         });
 
-        // ================================================================
-        //  额外说明：当文件夹为空时禁用按钮
-        // ================================================================
-
-        // 对于每个 input，如果用户选择了文件但过滤后无图片，按钮保持禁用
-        // 已在 setupImageTab 中处理
+        // 额外：当用户调整画质时，在控制台提示（不打扰）
+        qualitySlider.addEventListener('change', function() {
+            console.log('画质已更新为:', currentQuality);
+        });
     </script>
 
 </body>
